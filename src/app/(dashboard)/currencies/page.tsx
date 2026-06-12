@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -66,7 +65,22 @@ export default function CurrenciesPage() {
   }
 
   useEffect(() => {
-    fetchCurrencies();
+    let isMounted = true;
+    async function load() {
+      try {
+        const res = await fetch("/api/currencies");
+        const json = await res.json();
+        if (isMounted && json.success) {
+          setCurrencies(json.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch currencies:", error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    load();
+    return () => { isMounted = false; };
   }, []);
 
   if (loading) {
@@ -87,13 +101,13 @@ export default function CurrenciesPage() {
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
+          <DialogTrigger>
             <Button onClick={() => setEditingCurrency(null)}>
               <Plus className="mr-2 h-4 w-4" />
               Add Currency
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
               <DialogTitle>
                 {editingCurrency ? "Edit Currency" : "Add Currency"}

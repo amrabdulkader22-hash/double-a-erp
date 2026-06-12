@@ -1,0 +1,241 @@
+/**
+ * DOUBLE A ERP — Module 1: System Administration
+ * TypeScript types + Zod validation schemas.
+ *
+ * File location in project: src/lib/types/system-administration.types.ts
+ * (Naming rule — DEC-058: one file per module, named
+ *  `<module-name-kebab-case>.types.ts` to match §6 Modules in the
+ *  Master Document, so the file name always traces back to the module
+ *  it belongs to — no numbered "module1/module2" names.)
+ *
+ * Conventions:
+ *  - Types mirror the DB tables in migration 001.
+ *  - Zod messages are i18n KEYS (resolved by the app's translation layer),
+ *    never hardcoded display text (no-hardcoded-text standard).
+ *  - Create/Update schemas omit server-managed fields (id, audit columns).
+ *  - All RHF + Zod forms consuming these schemas MUST follow DEC-057
+ *    (useForm<z.input<Schema>, any, z.output<Schema>>).
+ */
+
+import { z } from "zod";
+
+/* ------------------------------------------------------------------ */
+/* Shared                                                              */
+/* ------------------------------------------------------------------ */
+
+/** Audit + soft-delete columns present on every table. */
+export interface AuditColumns {
+  id: string; // uuid
+  created_by: string | null;
+  created_at: string; // ISO timestamp
+  updated_by: string | null;
+  updated_at: string | null;
+  is_deleted: boolean;
+  deleted_by: string | null;
+  deleted_at: string | null;
+}
+
+export type PeriodStatus = "Open" | "Closed";
+export type FiscalYearStatus = "Open" | "Closed";
+export type ExchangeRateSource = "CBE" | "Manual";
+export type ParamDataType = "string" | "number" | "boolean" | "date" | "uuid";
+
+const reqString = (max: number) =>
+  z.string()
+    .trim()
+    .nonempty({ message: "validation.required" })
+    .max(max, { message: "validation.tooLong" });
+
+const uuid = z.string().uuid("validation.invalidReference");
+
+/* ------------------------------------------------------------------ */
+/* 1. Currency                                                         */
+/* ------------------------------------------------------------------ */
+
+export interface Currency extends AuditColumns {
+  currency_code: string;
+  name_ar: string;
+  name_en: string;
+  symbol: string | null;
+  decimal_places: number;
+  is_base: boolean;
+  is_active: boolean;
+}
+
+export const currencyCreateSchema = z.object({
+  currency_code: z.string().trim().length(3, "validation.iso4217").toUpperCase(),
+  name_ar: reqString(120),
+  name_en: reqString(120),
+  symbol: z.string().trim().max(8).optional().nullable(),
+  decimal_places: z.coerce.number().int().min(0, "validation.range").max(6, "validation.range").default(2),
+  is_base: z.boolean().default(false),
+  is_active: z.boolean().default(true),
+});
+export const currencyUpdateSchema = currencyCreateSchema.partial();
+export type CurrencyCreateInput = z.infer<typeof currencyCreateSchema>;
+export type CurrencyUpdateInput = z.infer<typeof currencyUpdateSchema>;
+
+/* ------------------------------------------------------------------ */
+/* 2. Exchange Rate                                                    */
+/* ------------------------------------------------------------------ */
+
+export interface ExchangeRate extends AuditColumns {
+  currency_id: string;
+  rate_date: string; // ISO date
+  rate_to_base: number;
+  source: ExchangeRateSource;
+}
+
+export const exchangeRateCreateSchema = z.object({
+  currency_id: uuid,
+  rate_date: z.string().date("validation.invalidDate"),
+  rate_to_base: z.coerce.number().positive("validation.mustBePositive"),
+  source: z.enum(["CBE", "Manual"]).default("CBE"),
+});
+export const exchangeRateUpdateSchema = exchangeRateCreateSchema.partial();
+export type ExchangeRateCreateInput = z.infer<typeof exchangeRateCreateSchema>;
+export type ExchangeRateUpdateInput = z.infer<typeof exchangeRateUpdateSchema>;
+
+/* ------------------------------------------------------------------ */
+/* 3. Company                                                          */
+/* ------------------------------------------------------------------ */
+
+export interface Company extends AuditColumns {
+  company_code: string;
+  legal_name_ar: string;
+  legal_name_en: string;
+  trade_name: string;
+  commercial_registration_no: string;
+  tax_registration_no: string;
+  address: string;
+  phone: string;
+  email: string;
+  logo_url: string;
+  base_currency_id: string;
+  is_active: boolean;
+}
+
+export const companyCreateSchema = z.object({
+  company_code: reqString(20),
+  legal_name_ar: reqString(200),
+  legal_name_en: reqString(200),
+  trade_name: reqString(200),
+  commercial_registration_no: reqString(60),
+  tax_registration_no: reqString(60),
+  address: reqString(2000),
+  phone: reqString(40),
+  email: z.string().trim().email("validation.invalidEmail").max(160),
+  logo_url: reqString(2000),
+  base_currency_id: uuid,
+  is_active: z.boolean().default(true),
+});
+export const companyUpdateSchema = companyCreateSchema.partial();
+export type CompanyCreateInput = z.infer<typeof companyCreateSchema>;
+export type CompanyUpdateInput = z.infer<typeof companyUpdateSchema>;
+
+/* ------------------------------------------------------------------ */
+/* 4. Branch                                                           */
+/* ------------------------------------------------------------------ */
+
+export interface Branch extends AuditColumns {
+  company_id: string;
+  branch_code: string;
+  name_ar: string;
+  name_en: string;
+  address: string | null;
+  phone: string | null;
+  is_active: boolean;
+}
+
+export const branchCreateSchema = z.object({
+  company_id: uuid,
+  branch_code: reqString(20),
+  name_ar: reqString(200),
+  name_en: reqString(200),
+  address: z.string().trim().max(2000).optional().nullable(),
+  phone: z.string().trim().max(40).optional().nullable(),
+  is_active: z.boolean().default(true),
+});
+export const branchUpdateSchema = branchCreateSchema.partial();
+export type BranchCreateInput = z.infer<typeof branchCreateSchema>;
+export type BranchUpdateInput = z.infer<typeof branchUpdateSchema>;
+
+/* ------------------------------------------------------------------ */
+/* 5. Fiscal Year                                                      */
+/* ------------------------------------------------------------------ */
+
+export interface FiscalYear extends AuditColumns {
+  year_code: string;
+  name_ar: string;
+  name_en: string;
+  start_date: string;
+  end_date: string;
+  status: FiscalYearStatus;
+  is_current: boolean;
+}
+
+export const fiscalYearCreateSchema = z
+  .object({
+    year_code: reqString(20),
+    name_ar: reqString(120),
+    name_en: reqString(120),
+    start_date: z.string().date("validation.invalidDate"),
+    end_date: z.string().date("validation.invalidDate"),
+    is_current: z.boolean().default(false),
+  })
+  .refine((v) => new Date(v.end_date) > new Date(v.start_date), {
+    message: "validation.endAfterStart",
+    path: ["end_date"],
+  });
+export type FiscalYearCreateInput = z.infer<typeof fiscalYearCreateSchema>;
+
+/* ------------------------------------------------------------------ */
+/* 6. Accounting Period (system-generated; read-mostly)               */
+/* ------------------------------------------------------------------ */
+
+export interface AccountingPeriod extends AuditColumns {
+  fiscal_year_id: string;
+  period_number: number; // 1..12
+  name_ar: string;
+  name_en: string;
+  start_date: string;
+  end_date: string;
+}
+
+/* ------------------------------------------------------------------ */
+/* 7. Company Period Status (per-company open/close — DEC-055)         */
+/* ------------------------------------------------------------------ */
+
+export interface CompanyPeriodStatus extends AuditColumns {
+  company_id: string;
+  accounting_period_id: string;
+  status: PeriodStatus;
+  closed_by: string | null;
+  closed_at: string | null;
+}
+
+/** Used by the "Open/Close Period" action (Accounting Manager only). */
+export const periodStatusChangeSchema = z.object({
+  company_id: uuid,
+  accounting_period_id: uuid,
+  status: z.enum(["Open", "Closed"]),
+});
+export type PeriodStatusChangeInput = z.infer<typeof periodStatusChangeSchema>;
+
+/* ------------------------------------------------------------------ */
+/* 8. System Parameter                                                 */
+/* ------------------------------------------------------------------ */
+
+export interface SystemParameter extends AuditColumns {
+  param_key: string;
+  param_value: string;
+  data_type: ParamDataType;
+  description_ar: string | null;
+  description_en: string | null;
+  is_editable: boolean;
+}
+
+export const systemParameterUpdateSchema = z.object({
+  param_value: z.string().min(0).max(5000),
+});
+export type SystemParameterUpdateInput = z.infer<typeof systemParameterUpdateSchema>;
