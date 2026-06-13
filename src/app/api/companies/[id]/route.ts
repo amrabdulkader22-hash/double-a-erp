@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
+import { companyUpdateSchema } from "@/lib/types/system-administration.types";
 
 /**
  * GET    /api/companies/[id]  → Get one Companies by UUID
@@ -25,15 +26,16 @@ export async function GET(
     if (error) throw error;
     if (!data) {
       return NextResponse.json(
-        { success: false, error: "Companies not found" },
+        { success: false, error: "Company not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch company";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch Companies" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -48,18 +50,32 @@ export async function PATCH(
     const supabase = await createApiClient();
     const body = await request.json();
 
+    // ✅ Golden Route Pattern validation
+    const parsed = companyUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("companies")
-      .update(body)
+      .update(parsed.data)
       .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update company";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to update Companies" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -82,9 +98,10 @@ export async function DELETE(
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to delete company";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to delete Companies" },
+      { success: false, error: message },
       { status: 500 }
     );
   }

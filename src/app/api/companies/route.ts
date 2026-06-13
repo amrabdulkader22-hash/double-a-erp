@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
+import { companyCreateSchema } from "@/lib/types/system-administration.types";
 
 /**
  * GET  /api/companies       → List all companies (soft-deleted excluded)
@@ -24,9 +25,10 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch companies";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch companies" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -37,17 +39,31 @@ export async function POST(request: NextRequest) {
     const supabase = await createApiClient();
     const body = await request.json();
 
+    // ✅ Golden Route Pattern validation
+    const parsed = companyCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("companies")
-      .insert(body)
+      .insert(parsed.data)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to create company";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to create companies" },
+      { success: false, error: message },
       { status: 500 }
     );
   }

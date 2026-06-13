@@ -187,7 +187,32 @@ export const fiscalYearCreateSchema = z
     message: "validation.endAfterStart",
     path: ["end_date"],
   });
+
+// ✅ إضافة schema مخصص للتحديث (تسمح بتحديث جزئي مع التحقق الشرطي)
+export const fiscalYearUpdateSchema = z
+  .object({
+    year_code: reqString(20).optional(),
+    name_ar: reqString(120).optional(),
+    name_en: reqString(120).optional(),
+    start_date: z.string().date("validation.invalidDate").optional(),
+    end_date: z.string().date("validation.invalidDate").optional(),
+    is_current: z.boolean().optional(),
+  })
+  .superRefine((data, ctx) => {
+    // التحقق من أن end_date > start_date فقط إذا كان كلاهما موجودين
+    if (data.start_date && data.end_date) {
+      if (new Date(data.end_date) <= new Date(data.start_date)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "validation.endAfterStart",
+          path: ["end_date"],
+        });
+      }
+    }
+  });
+
 export type FiscalYearCreateInput = z.infer<typeof fiscalYearCreateSchema>;
+export type FiscalYearUpdateInput = z.infer<typeof fiscalYearUpdateSchema>;
 
 /* ------------------------------------------------------------------ */
 /* 6. Accounting Period (system-generated; read-mostly)               */
