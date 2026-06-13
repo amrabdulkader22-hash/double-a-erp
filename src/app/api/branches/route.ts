@@ -1,54 +1,47 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
+import { branchCreateSchema } from "@/lib/types/system-administration.types";
 
-/**
- * GET  /api/branches       → List all branches (soft-deleted excluded)
- * POST /api/branches       → Create new branches
- */
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createApiClient();
-    const { searchParams } = new URL(request.url);
-
-    let query = supabase
+    const { data, error } = await supabase
       .from("branches")
-      .select("*")
+      .select("*, companies(company_code, legal_name_en, legal_name_ar)") // ✅ JOIN مع الشركات
       .eq("is_deleted", false)
       .order("branch_code", { ascending: true });
-    if (searchParams.get('is_active')) {
-      query = query.eq('is_active', searchParams.get('is_active') === 'true')
-    }
-
-    const { data, error } = await query;
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch branches" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch branches";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const supabase = await createApiClient();
     const body = await request.json();
 
+    const parsed = branchCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("branches")
-      .insert(body)
+      .insert(parsed.data)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data }, { status: 201 });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to create branches" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to create branch";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
