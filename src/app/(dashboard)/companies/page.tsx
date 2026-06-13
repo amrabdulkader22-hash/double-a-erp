@@ -23,8 +23,10 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import type { Company } from "@/lib/types/system-administration.types";
 import { CompanyForm } from "@/components/companies/company-form";
 
+type CompanyRow = Company & { currencies?: { currency_code: string; name_en: string } };
+
 export default function CompaniesPage() {
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
@@ -134,7 +136,9 @@ export default function CompaniesPage() {
                   <TableCell>{company.legal_name_en}</TableCell>
                   <TableCell>{company.trade_name}</TableCell>
                   <TableCell>{company.tax_registration_no}</TableCell>
-                  <TableCell>{company.base_currency_id}</TableCell>
+                  <TableCell>
+                    {company.currencies?.currency_code || company.base_currency_id}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={company.is_active ? "default" : "secondary"}>
                       {company.is_active ? "Active" : "Inactive"}

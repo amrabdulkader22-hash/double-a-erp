@@ -49,7 +49,6 @@ export function CompanyForm({
   const form = useForm<FormValues, unknown, z.output<typeof companyCreateSchema>>({
     resolver: zodResolver(companyCreateSchema),
     defaultValues: {
-      company_code: "",
       legal_name_ar: "",
       legal_name_en: "",
       trade_name: "",
@@ -67,7 +66,6 @@ export function CompanyForm({
   useEffect(() => {
     if (initialData) {
       form.reset({
-        company_code: initialData.company_code,
         legal_name_ar: initialData.legal_name_ar,
         legal_name_en: initialData.legal_name_en,
         trade_name: initialData.trade_name,
@@ -82,7 +80,6 @@ export function CompanyForm({
       });
     } else {
       form.reset({
-        company_code: "",
         legal_name_ar: "",
         legal_name_en: "",
         trade_name: "",
@@ -102,6 +99,7 @@ export function CompanyForm({
   const [loadingCurrencies, setLoadingCurrencies] = useState(true);
 
   useEffect(() => {
+    if (!open) return;
     const fetchCurrencies = async () => {
       try {
         const res = await fetch("/api/currencies");
@@ -113,7 +111,7 @@ export function CompanyForm({
         setLoadingCurrencies(false);
       }
     };
-    if (open) fetchCurrencies();
+    fetchCurrencies();
   }, [open]);
 
   const onSubmit = async (values: FormValues) => {
@@ -142,19 +140,6 @@ export function CompanyForm({
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="company_code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Company Code *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., DOUB001" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
           <FormField
             control={form.control}
             name="base_currency_id"

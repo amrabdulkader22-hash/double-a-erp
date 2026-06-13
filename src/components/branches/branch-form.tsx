@@ -50,7 +50,6 @@ export function BranchForm({
     resolver: zodResolver(branchCreateSchema),
     defaultValues: {
       company_id: "",
-      branch_code: "",
       name_ar: "",
       name_en: "",
       address: "",
@@ -63,7 +62,6 @@ export function BranchForm({
     if (initialData) {
       form.reset({
         company_id: initialData.company_id,
-        branch_code: initialData.branch_code,
         name_ar: initialData.name_ar,
         name_en: initialData.name_en,
         address: initialData.address ?? "",
@@ -73,7 +71,6 @@ export function BranchForm({
     } else {
       form.reset({
         company_id: "",
-        branch_code: "",
         name_ar: "",
         name_en: "",
         address: "",
@@ -87,6 +84,7 @@ export function BranchForm({
   const [loadingCompanies, setLoadingCompanies] = useState(true);
 
   useEffect(() => {
+    if (!open) return;
     const fetchCompanies = async () => {
       try {
         const res = await fetch("/api/companies");
@@ -98,7 +96,7 @@ export function BranchForm({
         setLoadingCompanies(false);
       }
     };
-    if (open) fetchCompanies();
+    fetchCompanies();
   }, [open]);
 
   const onSubmit = async (values: FormValues) => {
@@ -151,19 +149,6 @@ export function BranchForm({
                     )}
                   </SelectContent>
                 </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="branch_code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Branch Code *</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., CAI001" {...field} />
-                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

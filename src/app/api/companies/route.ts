@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
 import { companyCreateSchema } from "@/lib/types/system-administration.types";
 
-/**
- * GET  /api/companies       → List all companies (soft-deleted excluded)
- * POST /api/companies       → Create new companies
- */
-
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createApiClient();
@@ -14,11 +9,12 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("companies")
-      .select("*")
+      .select("*, currencies(currency_code, name_en)") // ✅ JOIN with currencies
       .eq("is_deleted", false)
       .order("company_code", { ascending: true });
+
     if (searchParams.get('is_active')) {
-      query = query.eq('is_active', searchParams.get('is_active') === 'true')
+      query = query.eq('is_active', searchParams.get('is_active') === 'true');
     }
 
     const { data, error } = await query;
@@ -39,7 +35,6 @@ export async function POST(request: NextRequest) {
     const supabase = await createApiClient();
     const body = await request.json();
 
-    // ✅ Golden Route Pattern validation
     const parsed = companyCreateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
