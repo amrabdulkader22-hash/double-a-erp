@@ -1,0 +1,53 @@
+{
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "loading": "Loading...",
+    "active": "Active",
+    "inactive": "Inactive",
+    "actions": "Actions",
+    "status": "Status",
+    "confirmDelete": "Are you sure?",
+    "create": "Create"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "currencies": "Currencies",
+    "companies": "Companies",
+    "branches": "Branches",
+    "fiscalYears": "Fiscal Years",
+    "exchangeRates": "Exchange Rates",
+    "accountingPeriods": "Accounting Periods",
+    "periodStatus": "Period Status",
+    "settings": "Settings"
+  },
+  "validation": {
+    "required": "Required",
+    "tooLong": "Too long",
+    "invalidEmail": "Invalid email",
+    "invalidDate": "Invalid date",
+    "mustBePositive": "Must be positive",
+    "endAfterStart": "End must be after start",
+    "iso4217": "3-letter currency code",
+    "invalidReference": "Invalid selection",
+    "range": "Out of range"
+  },
+  "periodStatus": {
+    "pageTitle": "Period Status (Open/Close)",
+    "selectCompany": "Select company",
+    "selectFiscalYear": "Select fiscal year",
+    "periodNumber": "Period #",
+    "nameEn": "Name (EN)",
+    "nameAr": "Name (AR)",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "status": "Status",
+    "action": "Action",
+    "close": "Close",
+    "open": "Open",
+    "noPeriods": "No periods found."
+  }
+}

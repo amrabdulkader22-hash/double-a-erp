@@ -1,0 +1,53 @@
+{
+  "common": {
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "add": "إضافة",
+    "loading": "جاري التحميل...",
+    "active": "نشط",
+    "inactive": "غير نشط",
+    "actions": "إجراءات",
+    "status": "الحالة",
+    "confirmDelete": "هل أنت متأكد؟",
+    "create": "إنشاء"
+  },
+  "nav": {
+    "dashboard": "لوحة التحكم",
+    "currencies": "العملات",
+    "companies": "الشركات",
+    "branches": "الفروع",
+    "fiscalYears": "السنوات المالية",
+    "exchangeRates": "أسعار الصرف",
+    "accountingPeriods": "الفترات المحاسبية",
+    "periodStatus": "حالة الفترة",
+    "settings": "الإعدادات"
+  },
+  "validation": {
+    "required": "مطلوب",
+    "tooLong": "طويل جداً",
+    "invalidEmail": "بريد إلكتروني غير صالح",
+    "invalidDate": "تاريخ غير صالح",
+    "mustBePositive": "يجب أن يكون موجباً",
+    "endAfterStart": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
+    "iso4217": "رمز العملة مكون من 3 أحرف",
+    "invalidReference": "اختيار غير صالح",
+    "range": "خارج النطاق"
+  },
+  "periodStatus": {
+    "pageTitle": "حالة الفترة (فتح/غلق)",
+    "selectCompany": "اختر الشركة",
+    "selectFiscalYear": "اختر السنة المالية",
+    "periodNumber": "رقم الفترة",
+    "nameEn": "الاسم (EN)",
+    "nameAr": "الاسم (AR)",
+    "startDate": "تاريخ البداية",
+    "endDate": "تاريخ النهاية",
+    "status": "الحالة",
+    "action": "الإجراء",
+    "close": "غلق",
+    "open": "فتح",
+    "noPeriods": "لا توجد فترات"
+  }
+}
