@@ -20,27 +20,29 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Loader2, Pencil, Trash2 } from "lucide-react";
-import type { Company } from "@/lib/types/system-administration.types";
-import { CompanyForm } from "@/components/companies/company-form";
+import type { Branch } from "@/lib/types/system-administration.types";
+import { BranchForm } from "@/components/branches/branch-form";
 
-export default function CompaniesPage() {
-  const [companies, setCompanies] = useState<Company[]>([]);
+type BranchRow = Branch & { companies?: { legal_name_en: string; company_code: string } };
+
+export default function BranchesPage() {
+  const [branches, setBranches] = useState<BranchRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
-  const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [editingBranch, setEditingBranch] = useState<Branch | null>(null);
 
   useEffect(() => {
-    fetchCompanies();
+    fetchBranches();
   }, []);
 
-  async function fetchCompanies() {
+  async function fetchBranches() {
     try {
-      const res = await fetch("/api/companies");
+      const res = await fetch("/api/branches");
       const json = await res.json();
       if (json.success) {
-        setCompanies(json.data);
+        setBranches(json.data);
       } else {
-        toast.error(json.error || "Failed to load companies");
+        toast.error(json.error || "Failed to load branches");
       }
     } catch {
       toast.error("Network error");
@@ -50,13 +52,13 @@ export default function CompaniesPage() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this company?")) return;
+    if (!confirm("Are you sure you want to delete this branch?")) return;
     try {
-      const res = await fetch(`/api/companies/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/branches/${id}`, { method: "DELETE" });
       const json = await res.json();
       if (json.success) {
-        toast.success("Company deleted successfully");
-        fetchCompanies();
+        toast.success("Branch deleted successfully");
+        fetchBranches();
       } else {
         toast.error(json.error || "Failed to delete");
       }
@@ -65,15 +67,15 @@ export default function CompaniesPage() {
     }
   }
 
-  function handleEdit(company: Company) {
-    setEditingCompany(company);
+  function handleEdit(branch: Branch) {
+    setEditingBranch(branch);
     setFormOpen(true);
   }
 
   function handleFormSuccess() {
-    fetchCompanies();
+    fetchBranches();
     setFormOpen(false);
-    setEditingCompany(null);
+    setEditingBranch(null);
   }
 
   if (loading) {
@@ -88,20 +90,20 @@ export default function CompaniesPage() {
   return (
     <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Companies</h1>
+        <h1 className="text-3xl font-bold">Branches</h1>
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
           <DialogTrigger
-            render={<Button onClick={() => setEditingCompany(null)}>Add Company</Button>}
+            render={<Button onClick={() => setEditingBranch(null)}>Add Branch</Button>}
           />
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingCompany ? "Edit Company" : "Add Company"}</DialogTitle>
+              <DialogTitle>{editingBranch ? "Edit Branch" : "Add Branch"}</DialogTitle>
             </DialogHeader>
-            <CompanyForm
+            <BranchForm
               open={formOpen}
               onOpenChange={setFormOpen}
               onSuccess={handleFormSuccess}
-              initialData={editingCompany || undefined}
+              initialData={editingBranch || undefined}
             />
           </DialogContent>
         </Dialog>
@@ -111,41 +113,37 @@ export default function CompaniesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Company Code</TableHead>
-              <TableHead>Legal Name (EN)</TableHead>
-              <TableHead>Trade Name</TableHead>
-              <TableHead>Tax Reg No.</TableHead>
-              <TableHead>Base Currency</TableHead>
+              <TableHead>Branch Code</TableHead>
+              <TableHead>Name (EN)</TableHead>
+              <TableHead>Parent Company</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {companies.length === 0 ? (
+            {branches.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No companies found. Click &quot;Add Company&quot; to create one.
+                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                  No branches found. Click &quot;Add Branch&quot; to create one.
                 </TableCell>
               </TableRow>
             ) : (
-              companies.map((company) => (
-                <TableRow key={company.id}>
-                  <TableCell className="font-medium">{company.company_code}</TableCell>
-                  <TableCell>{company.legal_name_en}</TableCell>
-                  <TableCell>{company.trade_name}</TableCell>
-                  <TableCell>{company.tax_registration_no}</TableCell>
-                  <TableCell>{company.base_currency_id}</TableCell>
+              branches.map((branch) => (
+                <TableRow key={branch.id}>
+                  <TableCell className="font-medium">{branch.branch_code}</TableCell>
+                  <TableCell>{branch.name_en}</TableCell>
+                  <TableCell>{branch.companies?.legal_name_en || branch.company_id}</TableCell>
                   <TableCell>
-                    <Badge variant={company.is_active ? "default" : "secondary"}>
-                      {company.is_active ? "Active" : "Inactive"}
+                    <Badge variant={branch.is_active ? "default" : "secondary"}>
+                      {branch.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEdit(company)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(branch)}>
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="icon" onClick={() => handleDelete(company.id)}>
+                      <Button variant="ghost" size="icon" onClick={() => handleDelete(branch.id)}>
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

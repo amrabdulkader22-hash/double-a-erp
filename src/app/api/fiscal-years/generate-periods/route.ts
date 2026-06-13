@@ -19,15 +19,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase.rpc("generate_accounting_periods", {
+    const { error } = await supabase.rpc("generate_accounting_periods", {
       p_fiscal_year_id: fiscal_year_id,
     });
 
     if (error) throw error;
     return NextResponse.json({ success: true, message: "Periods generated successfully" });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to generate periods";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to generate periods" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
