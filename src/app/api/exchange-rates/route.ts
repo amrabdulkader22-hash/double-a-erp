@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
+import { exchangeRateCreateSchema } from "@/lib/types/system-administration.types";
 
-/**
- * GET  /api/exchange-rates       → List all exchange_rates (soft-deleted excluded)
- * POST /api/exchange-rates       → Create new exchange_rates
- */
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const supabase = await createApiClient();
-    const { searchParams } = new URL(request.url);
-
-    let query = supabase
+    const query = supabase
       .from("exchange_rates")
-      .select("*")
+      .select("*, currencies(currency_code, name_en)")
       .eq("is_deleted", false)
       .order("rate_date", { ascending: true });
 
@@ -21,9 +15,10 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch exchange_rates";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch exchange_rates" },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -34,17 +29,30 @@ export async function POST(request: NextRequest) {
     const supabase = await createApiClient();
     const body = await request.json();
 
+    const parsed = exchangeRateCreateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Validation failed",
+          issues: parsed.error.flatten(),
+        },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("exchange_rates")
-      .insert(body)
+      .insert(parsed.data)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data }, { status: 201 });
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to create exchange_rates";
     return NextResponse.json(
-      { success: false, error: err.message || "Failed to create exchange_rates" },
+      { success: false, error: message },
       { status: 500 }
     );
   }

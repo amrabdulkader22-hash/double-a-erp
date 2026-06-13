@@ -19,21 +19,15 @@ import {
 } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import type { ExchangeRate } from "@/lib/types/system-administration.types";
+import { ExchangeRateForm } from "@/components/exchange-rates/exchange-rate-form";
 
-interface ExchangeRate {
-  id: string;
-  rate_date: string;
-  rate_to_base: number;
-  source: string;
-  currencies: {
-    currency_code: string;
-    name_en: string;
-  };
-}
+type ExchangeRateRow = ExchangeRate & { currencies?: { currency_code: string; name_en: string } };
 
 export default function ExchangeRatesPage() {
-  const [rates, setRates] = useState<<ExchangeRate[]>([]);  // ✅ Fixed: << became <
+  const [rates, setRates] = useState<ExchangeRateRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [formOpen, setFormOpen] = useState(false);
 
   useEffect(() => {
     fetchRates();
@@ -42,9 +36,12 @@ export default function ExchangeRatesPage() {
   async function fetchRates() {
     try {
       const res = await fetch("/api/exchange-rates");
-      const data = await res.json();
-      if (res.ok) setRates(data);
-      else toast.error(data.error || "Failed to load");
+      const json = await res.json();
+      if (json.success) {
+        setRates(json.data);
+      } else {
+        toast.error(json.error || "Failed to load");
+      }
     } catch {
       toast.error("Network error");
     } finally {
@@ -65,16 +62,13 @@ export default function ExchangeRatesPage() {
     <div className="p-8 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Exchange Rates</h1>
-        <Dialog>
-          <DialogTrigger asChild>  {/* ✅ asChild is supported in newer shadcn versions */}
-            <Button>Add Rate</Button>
-          </DialogTrigger>
+        <Dialog open={formOpen} onOpenChange={setFormOpen}>
+          <DialogTrigger render={<Button>Add Rate</Button>} />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Exchange Rate</DialogTitle>
             </DialogHeader>
-            {/* TODO: Add ExchangeRateForm component here */}
-            <p className="text-muted-foreground">Form coming soon...</p>
+            <ExchangeRateForm open={formOpen} onOpenChange={setFormOpen} onSuccess={fetchRates} />
           </DialogContent>
         </Dialog>
       </div>
