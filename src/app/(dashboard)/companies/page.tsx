@@ -23,7 +23,9 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import type { Company } from "@/lib/types/system-administration.types";
 import { CompanyForm } from "@/components/companies/company-form";
 
-type CompanyRow = Company & { currencies?: { currency_code: string; name_en: string } };
+type CompanyRow = Company & { currencies?: { currency_code: string; name_en: string; name_ar: string } };
+
+const locale: "en" | "ar" = "en"; // غيره إلى "ar" للعربية
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
@@ -92,9 +94,7 @@ export default function CompaniesPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Companies</h1>
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
-          <DialogTrigger
-            render={<Button onClick={() => setEditingCompany(null)}>Add Company</Button>}
-          />
+          <DialogTrigger render={<Button onClick={() => setEditingCompany(null)}>Add Company</Button>} />
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingCompany ? "Edit Company" : "Add Company"}</DialogTitle>
@@ -114,7 +114,7 @@ export default function CompaniesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Company Code</TableHead>
-              <TableHead>Legal Name (EN)</TableHead>
+              <TableHead>Legal Name</TableHead>
               <TableHead>Trade Name</TableHead>
               <TableHead>Tax Reg No.</TableHead>
               <TableHead>Base Currency</TableHead>
@@ -133,12 +133,12 @@ export default function CompaniesPage() {
               companies.map((company) => (
                 <TableRow key={company.id}>
                   <TableCell className="font-medium">{company.company_code}</TableCell>
-                  <TableCell>{company.legal_name_en}</TableCell>
+                  <TableCell>
+                    {locale === "ar" ? company.legal_name_ar : company.legal_name_en}
+                  </TableCell>
                   <TableCell>{company.trade_name}</TableCell>
                   <TableCell>{company.tax_registration_no}</TableCell>
-                  <TableCell>
-                    {company.currencies?.currency_code || company.base_currency_id}
-                  </TableCell>
+                  <TableCell>{company.currencies?.currency_code ?? "-"}</TableCell>
                   <TableCell>
                     <Badge variant={company.is_active ? "default" : "secondary"}>
                       {company.is_active ? "Active" : "Inactive"}

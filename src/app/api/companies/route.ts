@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("companies")
-      .select("*, currencies(currency_code, name_en)") // ✅ JOIN with currencies
+      .select("*, currencies(currency_code, name_en, name_ar)") // ✅ JOIN مع العملات (للعرض بالعربية والإنجليزية)
       .eq("is_deleted", false)
       .order("company_code", { ascending: true });
 

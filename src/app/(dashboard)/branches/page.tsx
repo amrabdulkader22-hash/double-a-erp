@@ -23,7 +23,10 @@ import { Loader2, Pencil, Trash2 } from "lucide-react";
 import type { Branch } from "@/lib/types/system-administration.types";
 import { BranchForm } from "@/components/branches/branch-form";
 
-type BranchRow = Branch & { companies?: { legal_name_en: string; company_code: string } };
+type BranchRow = Branch & { companies?: { company_code: string; legal_name_en: string; legal_name_ar: string } };
+
+// ✅ تعريف locale بنوع اتحادي صريح
+const locale: "en" | "ar" = "en"; // غيره إلى "ar" للعربية
 
 export default function BranchesPage() {
   const [branches, setBranches] = useState<BranchRow[]>([]);
@@ -92,9 +95,7 @@ export default function BranchesPage() {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Branches</h1>
         <Dialog open={formOpen} onOpenChange={setFormOpen}>
-          <DialogTrigger
-            render={<Button onClick={() => setEditingBranch(null)}>Add Branch</Button>}
-          />
+          <DialogTrigger render={<Button onClick={() => setEditingBranch(null)}>Add Branch</Button>} />
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingBranch ? "Edit Branch" : "Add Branch"}</DialogTitle>
@@ -114,7 +115,7 @@ export default function BranchesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Branch Code</TableHead>
-              <TableHead>Name (EN)</TableHead>
+              <TableHead>Name</TableHead>
               <TableHead>Parent Company</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -131,8 +132,14 @@ export default function BranchesPage() {
               branches.map((branch) => (
                 <TableRow key={branch.id}>
                   <TableCell className="font-medium">{branch.branch_code}</TableCell>
-                  <TableCell>{branch.name_en}</TableCell>
-                  <TableCell>{branch.companies?.legal_name_en || branch.company_id}</TableCell>
+                  <TableCell>
+                    {locale === "ar" ? branch.name_ar : branch.name_en}
+                  </TableCell>
+                  <TableCell>
+                    {locale === "ar"
+                      ? branch.companies?.legal_name_ar
+                      : branch.companies?.legal_name_en}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={branch.is_active ? "default" : "secondary"}>
                       {branch.is_active ? "Active" : "Inactive"}

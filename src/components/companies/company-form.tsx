@@ -28,6 +28,7 @@ import {
   type Company,
 } from "@/lib/types/system-administration.types";
 import type { Currency } from "@/lib/types/system-administration.types";
+import { LogoUpload } from "./logo-upload";
 
 type FormValues = z.input<typeof companyCreateSchema>;
 
@@ -291,14 +292,15 @@ export function CompanyForm({
           />
         </div>
 
+        {/* Logo Upload - replaces text input */}
         <FormField
           control={form.control}
           name="logo_url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Logo URL (optional)</FormLabel>
+              <FormLabel>Logo</FormLabel>
               <FormControl>
-                <Input placeholder="https://..." {...field} value={field.value ?? ""} />
+                <LogoUpload value={field.value ?? null} onChange={field.onChange} />
               </FormControl>
               <FormMessage />
             </FormItem>
