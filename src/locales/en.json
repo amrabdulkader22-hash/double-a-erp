@@ -11,7 +11,8 @@
     "actions": "Actions",
     "status": "Status",
     "confirmDelete": "Are you sure?",
-    "create": "Create"
+    "create": "Create",
+    "logout": "Logout"
   },
   "nav": {
     "dashboard": "Dashboard",

@@ -11,7 +11,8 @@
     "actions": "إجراءات",
     "status": "الحالة",
     "confirmDelete": "هل أنت متأكد؟",
-    "create": "إنشاء"
+    "create": "إنشاء",
+    "logout": "تسجيل الخروج"
   },
   "nav": {
     "dashboard": "لوحة التحكم",
