@@ -36,7 +36,11 @@ const navItems = [
   { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
@@ -58,26 +62,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <aside
         className={cn(
           "fixed inset-y-0 start-0 z-50 w-64 bg-card border-e border-border transition-transform duration-300 lg:static",
-          sidebarOpen ? "translate-x-0" : "ltr:-translate-x-full rtl:translate-x-full"
+          sidebarOpen
+            ? "translate-x-0"
+            : "ltr:-translate-x-full rtl:translate-x-full"
         )}
       >
         <div className="flex items-center justify-between h-16 px-6 border-b border-border">
           <h1 className="text-xl font-bold text-primary">Double A ERP</h1>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-2 rounded-md hover:bg-accent">
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 rounded-md hover:bg-accent"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
+
         <nav className="p-4 space-y-1">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href + "/");
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
                   "flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors",
-                  isActive ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 <Icon className="h-5 w-5" />
@@ -86,6 +99,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             );
           })}
         </nav>
+
         <div className="absolute bottom-0 inset-x-0 p-4 border-t border-border">
           <button
             onClick={handleLogout}
@@ -99,23 +113,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       <div className="flex-1 flex flex-col min-w-0">
         <header className="h-16 flex items-center gap-4 px-6 border-b border-border bg-card">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-2 rounded-md hover:bg-accent">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-md hover:bg-accent"
+          >
             <Menu className="h-5 w-5" />
           </button>
           <h2 className="text-lg font-semibold flex-1">
             {t(
-              navItems.find((item) => pathname === item.href || pathname.startsWith(item.href + "/"))?.labelKey ||
-                "nav.dashboard"
+              navItems.find(
+                (item) =>
+                  pathname === item.href || pathname.startsWith(item.href + "/")
+              )?.labelKey || "nav.dashboard"
             )}
           </h2>
-          <button onClick={toggleLanguage} className="p-2 rounded-md hover:bg-accent transition-colors">
+          <button
+            onClick={toggleLanguage}
+            className="p-2 rounded-md hover:bg-accent transition-colors"
+          >
             <Languages className="h-5 w-5" />
           </button>
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="p-2 rounded-md hover:bg-accent transition-colors"
           >
-            {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            {theme === "dark" ? (
+              <Sun className="h-5 w-5" />
+            ) : (
+              <Moon className="h-5 w-5" />
+            )}
           </button>
         </header>
         <main className="flex-1 overflow-auto p-6">{children}</main>
