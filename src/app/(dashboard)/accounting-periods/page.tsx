@@ -53,7 +53,13 @@ export default function AccountingPeriodsPage() {
 
   // جلب الفترات عند تغيير السنة المالية
   useEffect(() => {
-    if (!selectedFiscalYearId) return;
+    if (!selectedFiscalYearId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setPeriods([]);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoading(false);
+      return;
+    }
     async function fetchPeriods() {
       setLoading(true);
       try {
@@ -106,45 +112,51 @@ export default function AccountingPeriodsPage() {
         </div>
       </div>
 
-      <div className="border rounded-lg">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Period #</TableHead>
-              <TableHead>Name (EN)</TableHead>
-              <TableHead>Name (AR)</TableHead>
-              <TableHead>Start Date</TableHead>
-              <TableHead>End Date</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {loading ? (
+      {!selectedFiscalYearId ? (
+        <div className="border rounded-lg p-8 text-center text-muted-foreground">
+          Select a fiscal year to view its periods
+        </div>
+      ) : (
+        <div className="border rounded-lg">
+          <Table>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={5} className="text-center">
-                  <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
-                  Loading...
-                </TableCell>
+                <TableHead>Period #</TableHead>
+                <TableHead>Name (EN)</TableHead>
+                <TableHead>Name (AR)</TableHead>
+                <TableHead>Start Date</TableHead>
+                <TableHead>End Date</TableHead>
               </TableRow>
-            ) : periods.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
-                  No accounting periods found. Use &quot;Generate Periods&quot; button in Fiscal Years.
-                </TableCell>
-              </TableRow>
-            ) : (
-              periods.map((period) => (
-                <TableRow key={period.id}>
-                  <TableCell className="font-medium">{period.period_number}</TableCell>
-                  <TableCell>{period.name_en}</TableCell>
-                  <TableCell>{period.name_ar}</TableCell>
-                  <TableCell>{period.start_date}</TableCell>
-                  <TableCell>{period.end_date}</TableCell>
+            </TableHeader>
+            <TableBody>
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center">
+                    <Loader2 className="h-5 w-5 animate-spin inline mr-2" />
+                    Loading...
+                  </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : periods.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    No accounting periods found. Use &quot;Generate Periods&quot; button in Fiscal Years.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                periods.map((period) => (
+                  <TableRow key={period.id}>
+                    <TableCell className="font-medium">{period.period_number}</TableCell>
+                    <TableCell>{period.name_en}</TableCell>
+                    <TableCell>{period.name_ar}</TableCell>
+                    <TableCell>{period.start_date}</TableCell>
+                    <TableCell>{period.end_date}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 }

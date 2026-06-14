@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
-
-/**
- * GET    /api/company-period-status/[id]  → Get one Company Period Status by UUID
- * PATCH  /api/company-period-status/[id]  → Update Company Period Status
- * DELETE /api/company-period-status/[id]  → Soft-delete Company Period Status
- */
+import { periodStatusChangeSchema } from "@/lib/types/system-administration.types";
 
 export async function GET(
   request: NextRequest,
@@ -31,11 +26,9 @@ export async function GET(
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch Company Period Status" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch period status";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -48,20 +41,26 @@ export async function PATCH(
     const supabase = await createApiClient();
     const body = await request.json();
 
+    const parsed = periodStatusChangeSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("company_period_status")
-      .update(body)
+      .update({ status: parsed.data.status, updated_at: new Date().toISOString() })
       .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to update Company Period Status" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update period status";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -82,10 +81,8 @@ export async function DELETE(
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to delete Company Period Status" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to delete period status";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
