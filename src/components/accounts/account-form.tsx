@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -26,15 +26,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
   accountCreateSchema,
-  accountUpdateSchema,
   type Account,
   ACCOUNT_TYPES,
   getDefaultNormalBalance,
   type AccountType,
 } from "@/lib/types/accounts.types";
 
+// Single form type — based on the CREATE schema (it contains every field).
+// Edit mode reuses the same form and only submits the editable fields.
 type FormValues = z.input<typeof accountCreateSchema>;
-type UpdateFormValues = z.input<typeof accountUpdateSchema>;
 
 interface AccountFormProps {
   open: boolean;
@@ -43,107 +43,133 @@ interface AccountFormProps {
   initialData?: Account;
 }
 
-export function AccountForm({ open, onOpenChange, onSuccess, initialData }: AccountFormProps) {
+export function AccountForm({
+  open,
+  onOpenChange,
+  onSuccess,
+  initialData,
+}: AccountFormProps) {
   const isEditing = !!initialData;
   const [accountLevel, setAccountLevel] = useState<"root" | "child">(
     initialData?.parent_id ? "child" : "root"
   );
-  const [parents, setParents] = useState<Account[]>([]);
-  const [loadingParents, setLoadingParents] = useState(false);
-  const [autoCodePreview, setAutoCodePreview] = useState<string>("");
   const [allAccounts, setAllAccounts] = useState<Account[]>([]);
+  const [loadingParents, setLoadingParents] = useState(false);
 
-  useEffect(() => {
-    if (open && accountLevel === "child") {
-      async function fetchParents() {
-        setLoadingParents(true);
-        try {
-          const res = await fetch("/api/accounts?is_deleted=false");
-          const json = await res.json();
-          if (json.success) {
-            setAllAccounts(json.data);
-            setParents(json.data.filter((a: Account) => a.is_active));
-          }
-        } catch (error) {
-          console.error(error);
-        } finally {
-          setLoadingParents(false);
-        }
-      }
-      fetchParents();
-    }
-  }, [open, accountLevel]);
-
+  // Initial values are derived from initialData here (no setState-in-effect).
+  // The parent renders this with a `key`, so it remounts per record.
   const form = useForm<FormValues>({
     resolver: zodResolver(accountCreateSchema),
-    defaultValues: {
-      name_ar: "",
-      name_en: "",
-      account_type: "Assets",
-      normal_balance: "Debit",
-      parent_id: null,
-      account_code: "",
-      is_active: true,
-      description: "",
-    },
+    defaultValues: initialData
+      ? {
+          name_ar: initialData.name_ar,
+          name_en: initialData.name_en,
+          account_type: initialData.account_type,
+          normal_balance: initialData.normal_balance,
+          parent_id: initialData.parent_id,
+          account_code: initialData.account_code,
+          is_active: initialData.is_active,
+          description: initialData.description ?? "",
+        }
+      : {
+          name_ar: "",
+          name_en: "",
+          account_type: "Assets",
+          normal_balance: "Debit",
+          parent_id: null,
+          account_code: "",
+          is_active: true,
+          description: "",
+        },
   });
 
-  const updateForm = useForm<UpdateFormValues>({
-    resolver: zodResolver(accountUpdateSchema),
-    defaultValues: {
-      name_ar: "",
-      name_en: "",
-      is_active: true,
-      description: "",
-    },
-  });
-
-  const activeForm = isEditing ? updateForm : form;
-
-  // مراقبة نوع الحساب فقط عند الإضافة
-  const watchAccountType = !isEditing ? form.watch("account_type") : undefined;
+  // Load potential parents (create + child mode only).
   useEffect(() => {
-    if (!isEditing && watchAccountType && ACCOUNT_TYPES.includes(watchAccountType as AccountType)) {
-      const defaultBalance = getDefaultNormalBalance(watchAccountType as AccountType);
-      form.setValue("normal_balance", defaultBalance);
+    if (!open || isEditing || accountLevel !== "child") return;
+    let active = true;
+    (async () => {
+      setLoadingParents(true);
+      try {
+        const res = await fetch("/api/accounts");
+        const json = await res.json();
+        if (active && json.success) setAllAccounts(json.data);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        if (active) setLoadingParents(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [open, isEditing, accountLevel]);
+
+  // Auto-default the normal balance from the account type (create only).
+  const watchType = useWatch({ control: form.control, name: "account_type" });
+  useEffect(() => {
+    if (isEditing) return;
+    if (watchType && ACCOUNT_TYPES.includes(watchType as AccountType)) {
+      form.setValue("normal_balance", getDefaultNormalBalance(watchType as AccountType));
     }
-  }, [watchAccountType, isEditing, form]);
+  }, [watchType, isEditing, form]);
 
-  const watchParentId = activeForm.watch("parent_id");
-  useEffect(() => {
-    if (accountLevel === "child" && watchParentId && allAccounts.length) {
-      const parent = allAccounts.find((p) => p.id === watchParentId);
-      if (parent) {
-        const siblings = allAccounts.filter((a) => a.parent_id === watchParentId);
-        let maxSuffix = 0;
-        siblings.forEach((s) => {
-          const match = s.account_code.match(new RegExp(`${parent.account_code}(\\d{2})$`));
-          if (match) maxSuffix = Math.max(maxSuffix, parseInt(match[1], 10));
+  // Preview the auto-generated child code (parent code + next 2-digit suffix).
+  const watchParent = useWatch({ control: form.control, name: "parent_id" });
+  const parentAccounts = allAccounts.filter((a) => a.is_active);
+  let autoCodePreview = "";
+  if (!isEditing && accountLevel === "child" && watchParent) {
+    const parent = allAccounts.find((p) => p.id === watchParent);
+    if (parent) {
+      let max = 0;
+      allAccounts
+        .filter((a) => a.parent_id === watchParent)
+        .forEach((s) => {
+          const m = s.account_code.match(
+            new RegExp(`^${parent.account_code}(\\d{2})$`)
+          );
+          if (m) max = Math.max(max, parseInt(m[1], 10));
         });
-        const nextNumber = (maxSuffix + 1).toString().padStart(2, "0");
-        setAutoCodePreview(`${parent.account_code}${nextNumber}`);
-      } else setAutoCodePreview("");
-    } else setAutoCodePreview("");
-  }, [watchParentId, accountLevel, allAccounts]);
+      autoCodePreview = `${parent.account_code}${String(max + 1).padStart(2, "0")}`;
+    }
+  }
 
-  const onSubmit = async (values: FormValues | UpdateFormValues) => {
+  const onSubmit = async (values: FormValues) => {
     try {
       const url = isEditing ? `/api/accounts/${initialData!.id}` : "/api/accounts";
       const method = isEditing ? "PATCH" : "POST";
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let payload: any;
-      if (!isEditing && accountLevel === "child") {
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { account_code, ...rest } = values as FormValues;
+      let payload: Record<string, unknown>;
+      if (isEditing) {
+        // Only the editable fields (DEC-068: code/type/balance are locked).
         payload = {
-          ...rest,
-          parent_id: watchParentId,
+          name_ar: values.name_ar,
+          name_en: values.name_en,
+          is_active: values.is_active,
+          description: values.description ?? null,
         };
-      } else if (!isEditing && accountLevel === "root") {
-        payload = values;
+      } else if (accountLevel === "child") {
+        // Child: omit account_code → DB trigger auto-generates it.
+        payload = {
+          name_ar: values.name_ar,
+          name_en: values.name_en,
+          account_type: values.account_type,
+          normal_balance: values.normal_balance,
+          parent_id: values.parent_id,
+          is_active: values.is_active,
+          description: values.description ?? null,
+        };
       } else {
-        payload = values;
+        // Root: manual account_code, no parent.
+        payload = {
+          name_ar: values.name_ar,
+          name_en: values.name_en,
+          account_type: values.account_type,
+          normal_balance: values.normal_balance,
+          parent_id: null,
+          account_code: values.account_code,
+          is_active: values.is_active,
+          description: values.description ?? null,
+        };
       }
 
       const res = await fetch(url, {
@@ -165,21 +191,27 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
   };
 
   return (
-    <Form {...activeForm}>
-      <form onSubmit={activeForm.handleSubmit(onSubmit)} className="space-y-4">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         {!isEditing && (
           <div className="flex gap-4">
             <Button
               type="button"
               variant={accountLevel === "root" ? "default" : "outline"}
-              onClick={() => setAccountLevel("root")}
+              onClick={() => {
+                setAccountLevel("root");
+                form.setValue("parent_id", null);
+              }}
             >
               Root Account
             </Button>
             <Button
               type="button"
               variant={accountLevel === "child" ? "default" : "outline"}
-              onClick={() => setAccountLevel("child")}
+              onClick={() => {
+                setAccountLevel("child");
+                form.setValue("account_code", "");
+              }}
             >
               Child Account
             </Button>
@@ -188,13 +220,13 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
 
         {!isEditing && accountLevel === "root" && (
           <FormField
-            control={activeForm.control}
+            control={form.control}
             name="account_code"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Code *</FormLabel>
                 <FormControl>
-                  <Input placeholder="e.g., 1000" {...field} />
+                  <Input placeholder="e.g., 1" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -204,22 +236,31 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
 
         {!isEditing && accountLevel === "child" && (
           <FormField
-            control={activeForm.control}
+            control={form.control}
             name="parent_id"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Parent Account *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value || undefined}>
+                <Select value={field.value ?? null} onValueChange={field.onChange}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select parent account" />
+                      <SelectValue placeholder="Select parent account">
+                        {(value: string) => {
+                          const p = allAccounts.find((a) => a.id === value);
+                          return p
+                            ? `${p.account_code} - ${p.name_en}`
+                            : "Select parent account";
+                        }}
+                      </SelectValue>
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     {loadingParents ? (
-                      <SelectItem value="loading" disabled>Loading...</SelectItem>
+                      <SelectItem value="__loading" disabled>
+                        Loading...
+                      </SelectItem>
                     ) : (
-                      parents.map((p) => (
+                      parentAccounts.map((p) => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.account_code} - {p.name_en}
                         </SelectItem>
@@ -238,28 +279,35 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
           />
         )}
 
+        {isEditing && (
+          <FormItem>
+            <FormLabel>Account Code</FormLabel>
+            <Input value={initialData!.account_code} disabled />
+          </FormItem>
+        )}
+
         <div className="grid grid-cols-2 gap-4">
           <FormField
-            control={activeForm.control}
+            control={form.control}
             name="name_en"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Name (English) *</FormLabel>
                 <FormControl>
-                  <Input {...field} />
+                  <Input {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
             )}
           />
           <FormField
-            control={activeForm.control}
+            control={form.control}
             name="name_ar"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Name (Arabic) *</FormLabel>
                 <FormControl>
-                  <Input dir="rtl" {...field} />
+                  <Input dir="rtl" {...field} value={field.value ?? ""} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -269,12 +317,16 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
 
         <div className="grid grid-cols-2 gap-4">
           <FormField
-            control={activeForm.control}
+            control={form.control}
             name="account_type"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Account Type *</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value} disabled={isEditing}>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={isEditing}
+                >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select type" />
@@ -292,34 +344,35 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
               </FormItem>
             )}
           />
-
-          {!isEditing && (
-            <FormField
-              control={activeForm.control}
-              name="normal_balance"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Normal Balance *</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select balance" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Debit">Debit</SelectItem>
-                      <SelectItem value="Credit">Credit</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          )}
+          <FormField
+            control={form.control}
+            name="normal_balance"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Normal Balance *</FormLabel>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  disabled={isEditing}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select balance" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="Debit">Debit</SelectItem>
+                    <SelectItem value="Credit">Credit</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <FormField
-          control={activeForm.control}
+          control={form.control}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -333,12 +386,15 @@ export function AccountForm({ open, onOpenChange, onSuccess, initialData }: Acco
         />
 
         <FormField
-          control={activeForm.control}
+          control={form.control}
           name="is_active"
           render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+            <FormItem className="flex flex-row items-start gap-3 space-y-0 rounded-md border p-4">
               <FormControl>
-                <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                <Checkbox
+                  checked={field.value ?? false}
+                  onCheckedChange={field.onChange}
+                />
               </FormControl>
               <div className="space-y-1 leading-none">
                 <FormLabel>Active</FormLabel>
