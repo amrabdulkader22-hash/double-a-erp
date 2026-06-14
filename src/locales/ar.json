@@ -24,6 +24,7 @@
     "accountingPeriods": "الفترات المحاسبية",
     "periodStatus": "حالة الفترة",
     "accounts": "شجرة الحسابات",
+    "costCenters": "مراكز التكلفة",
     "settings": "الإعدادات"
   },
   "validation": {

@@ -24,6 +24,7 @@
     "accountingPeriods": "Accounting Periods",
     "periodStatus": "Period Status",
     "accounts": "Chart of Accounts",
+    "costCenters": "Cost Centers",
     "settings": "Settings"
   },
   "validation": {
