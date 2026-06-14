@@ -15,6 +15,7 @@ import {
   CalendarDays,
   CalendarCheck,
   ListTree,
+  Network,
   Settings,
   Menu,
   X,
@@ -35,6 +36,7 @@ const navItems = [
   { href: "/accounting-periods", labelKey: "nav.accountingPeriods", icon: CalendarDays },
   { href: "/period-status", labelKey: "nav.periodStatus", icon: CalendarCheck },
   { href: "/accounts", labelKey: "nav.accounts", icon: ListTree },
+  { href: "/cost-centers", labelKey: "nav.costCenters", icon: Network },
   { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
