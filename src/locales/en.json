@@ -23,6 +23,7 @@
     "exchangeRates": "Exchange Rates",
     "accountingPeriods": "Accounting Periods",
     "periodStatus": "Period Status",
+    "accounts": "Chart of Accounts",
     "settings": "Settings"
   },
   "validation": {

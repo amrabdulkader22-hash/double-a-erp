@@ -23,6 +23,7 @@
     "exchangeRates": "أسعار الصرف",
     "accountingPeriods": "الفترات المحاسبية",
     "periodStatus": "حالة الفترة",
+    "accounts": "شجرة الحسابات",
     "settings": "الإعدادات"
   },
   "validation": {

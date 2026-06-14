@@ -14,6 +14,7 @@ import {
   GitBranch,
   CalendarDays,
   CalendarCheck,
+  ListTree,
   Settings,
   Menu,
   X,
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/exchange-rates", labelKey: "nav.exchangeRates", icon: Coins },
   { href: "/accounting-periods", labelKey: "nav.accountingPeriods", icon: CalendarDays },
   { href: "/period-status", labelKey: "nav.periodStatus", icon: CalendarCheck },
+  { href: "/accounts", labelKey: "nav.accounts", icon: ListTree },
   { href: "/settings", labelKey: "nav.settings", icon: Settings },
 ];
 
