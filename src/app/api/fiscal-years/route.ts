@@ -1,30 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
-import { fiscalYearCreateSchema } from "@/lib/types/system-administration.types";
+import { z } from "zod";
 
-export async function GET(request: NextRequest) {
-  try {
-    const supabase = await createApiClient();
-    const { data, error } = await supabase
-      .from("fiscal_years")
-      .select("*")
-      .eq("is_deleted", false)
-      .order("start_date", { ascending: false });
+const generatePeriodsSchema = z.object({
+  fiscal_year_id: z.string().uuid("validation.invalidReference"),
+});
 
-    if (error) throw error;
-    return NextResponse.json({ success: true, data });
-  } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to fetch fiscal years";
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
-  }
-}
+/**
+ * POST /api/fiscal-years/generate-periods
+ * Body: { fiscal_year_id: string }
+ * Calls the PostgreSQL function generate_accounting_periods()
+ */
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createApiClient();
     const body = await request.json();
 
-    const parsed = fiscalYearCreateSchema.safeParse(body);
+    const parsed = generatePeriodsSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: "Validation failed", issues: parsed.error.flatten() },
@@ -32,16 +25,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data, error } = await supabase
-      .from("fiscal_years")
-      .insert(parsed.data)
-      .select()
-      .single();
+    const { error } = await supabase.rpc("generate_accounting_periods", {
+      p_fiscal_year_id: parsed.data.fiscal_year_id,
+    });
 
     if (error) throw error;
-    return NextResponse.json({ success: true, data }, { status: 201 });
+    return NextResponse.json({ success: true, message: "Periods generated successfully" });
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Failed to create fiscal year";
+    const message = err instanceof Error ? err.message : "Failed to generate periods";
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

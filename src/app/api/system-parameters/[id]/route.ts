@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
-
-/**
- * GET    /api/system-parameters/[id]  → Get one System Parameters by UUID
- * PATCH  /api/system-parameters/[id]  → Update System Parameters
- * DELETE /api/system-parameters/[id]  → Soft-delete System Parameters
- */
+import { systemParameterUpdateSchema } from "@/lib/types/system-administration.types";
 
 export async function GET(
   request: NextRequest,
@@ -25,17 +20,15 @@ export async function GET(
     if (error) throw error;
     if (!data) {
       return NextResponse.json(
-        { success: false, error: "System Parameters not found" },
+        { success: false, error: "System Parameter not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch System Parameters" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch parameter";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -48,20 +41,26 @@ export async function PATCH(
     const supabase = await createApiClient();
     const body = await request.json();
 
+    const parsed = systemParameterUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("system_parameters")
-      .update(body)
+      .update({ param_value: parsed.data.param_value })
       .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to update System Parameters" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update parameter";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -82,10 +81,8 @@ export async function DELETE(
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to delete System Parameters" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to delete parameter";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

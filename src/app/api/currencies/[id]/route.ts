@@ -1,11 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createApiClient } from "@/lib/supabase-api";
-
-/**
- * GET    /api/currencies/[id]  → Get one Currencies by UUID
- * PATCH  /api/currencies/[id]  → Update Currencies
- * DELETE /api/currencies/[id]  → Soft-delete Currencies
- */
+import { currencyUpdateSchema } from "@/lib/types/system-administration.types";
 
 export async function GET(
   request: NextRequest,
@@ -25,17 +20,15 @@ export async function GET(
     if (error) throw error;
     if (!data) {
       return NextResponse.json(
-        { success: false, error: "Currencies not found" },
+        { success: false, error: "Currency not found" },
         { status: 404 }
       );
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to fetch Currencies" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to fetch currency";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -48,20 +41,26 @@ export async function PATCH(
     const supabase = await createApiClient();
     const body = await request.json();
 
+    const parsed = currencyUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: "Validation failed", issues: parsed.error.flatten() },
+        { status: 400 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("currencies")
-      .update(body)
+      .update(parsed.data)
       .eq("id", id)
       .select()
       .single();
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to update Currencies" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to update currency";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
 
@@ -82,10 +81,8 @@ export async function DELETE(
 
     if (error) throw error;
     return NextResponse.json({ success: true, data });
-  } catch (err: any) {
-    return NextResponse.json(
-      { success: false, error: err.message || "Failed to delete Currencies" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Failed to delete currency";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

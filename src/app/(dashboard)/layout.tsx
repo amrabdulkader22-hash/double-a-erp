@@ -103,12 +103,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <Menu className="h-5 w-5" />
           </button>
           <h2 className="text-lg font-semibold flex-1">
-            {t(navItems.find((item) => pathname === item.href || pathname.startsWith(item.href + "/"))?.labelKey || "nav.dashboard")}
+            {t(
+              navItems.find((item) => pathname === item.href || pathname.startsWith(item.href + "/"))?.labelKey ||
+                "nav.dashboard"
+            )}
           </h2>
           <button onClick={toggleLanguage} className="p-2 rounded-md hover:bg-accent transition-colors">
             <Languages className="h-5 w-5" />
           </button>
-          <button onClick={() => setTheme(theme === "dark" ? "light" : "dark")} className="p-2 rounded-md hover:bg-accent transition-colors">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="p-2 rounded-md hover:bg-accent transition-colors"
+          >
             {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
           </button>
         </header>
